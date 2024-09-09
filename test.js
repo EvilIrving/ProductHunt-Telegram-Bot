@@ -10,112 +10,183 @@ const TimePeriodEnum = {
 function generateQueryForTimePeriod(timePeriod) {
   let today = new Date();
   let postedAfter, postedBefore;
-  const dayOfWeek = today.getDay();
 
   switch (timePeriod) {
     case TimePeriodEnum.TODAY:
       postedAfter = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate()
+        )
       );
-
+      postedBefore = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() + 1
+        )
+      );
       break;
     case TimePeriodEnum.YESTERDAY:
       postedAfter = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - 1
-      );
-      postedBefore = postedAfter;
-      break;
-    case TimePeriodEnum.THIS_WEEK:
-      const startOfWeek = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek + 1
-      );
-      postedAfter = new Date(
-        startOfWeek.getFullYear(),
-        startOfWeek.getMonth(),
-        startOfWeek.getDate()
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - 1
+        )
       );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() + (7 - dayOfWeek)
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate()
+        )
+      );
+      break;
+    case TimePeriodEnum.THIS_WEEK:
+      const dayOfWeek = today.getUTCDay();
+      const startOfWeek = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - (dayOfWeek - (dayOfWeek === 0 ? 6 : 0))
+        )
+      );
+      postedAfter = new Date(
+        Date.UTC(
+          startOfWeek.getUTCFullYear(),
+          startOfWeek.getUTCMonth(),
+          startOfWeek.getUTCDate()
+        )
+      );
+      postedBefore = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() + (7 - dayOfWeek - (dayOfWeek === 0 ? 1 : 0))
+        )
       );
       break;
     case TimePeriodEnum.THIS_MONTH:
-      postedAfter = new Date(today.getFullYear(), today.getMonth(), 1);
+      postedAfter = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)
+      );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0 // last day of the current month
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)
       );
       break;
     case TimePeriodEnum.LAST_WEEK:
       const startOfLastWeek = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek - 6
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - (today.getUTCDay() - 1 + 7)
+        )
       );
       postedAfter = new Date(
-        startOfLastWeek.getFullYear(),
-        startOfLastWeek.getMonth(),
-        startOfLastWeek.getDate()
+        Date.UTC(
+          startOfLastWeek.getUTCFullYear(),
+          startOfLastWeek.getUTCMonth(),
+          startOfLastWeek.getUTCDate()
+        )
       );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek
+        Date.UTC(
+          startOfLastWeek.getUTCFullYear(),
+          startOfLastWeek.getUTCMonth(),
+          startOfLastWeek.getUTCDate() + 7
+        )
       );
       break;
     case TimePeriodEnum.LAST_MONTH:
-      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-      postedAfter = lastMonth;
-      postedBefore = lastMonthEnd;
+      const lastMonth =
+        today.getUTCMonth() === 0 ? 11 : today.getUTCMonth() - 1;
+      const lastMonthYear =
+        today.getUTCMonth() === 0
+          ? today.getUTCFullYear() - 1
+          : today.getUTCFullYear();
+      postedAfter = new Date(Date.UTC(lastMonthYear, lastMonth, 1));
+      postedBefore = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)
+      );
       break;
     default:
       throw new Error("Invalid time period");
   }
 
   // Format the date to YYYY-MM-DD
-  postedAfter = postedAfter.toLocaleDateString("en-US");
-  if (postedBefore) {
-    postedBefore = postedBefore.toLocaleDateString("en-US");
-  }
+  postedAfter = postedAfter.toISOString().split("T")[0];
+  postedBefore = postedBefore
+    ? postedBefore.toISOString().split("T")[0]
+    : undefined;
 
   return {
     postedAfter,
-    postedBefore: postedBefore ? postedBefore : undefined,
+    postedBefore,
   };
 }
 
-// 测试函数
 function testGenerateQueryForTimePeriod() {
-  let today = new Date();
-  const dayOfWeek = today.getDay();
-  console.log("dayOfWeek: ", dayOfWeek);
+  const testCases = [
+    {
+      timePeriod: TimePeriodEnum.TODAY,
+      expected: {
+        postedAfter: "2024-09-10", // 假设今天是 2024-09-10
+        postedBefore: "2024-09-11",
+      },
+    },
+    {
+      timePeriod: TimePeriodEnum.YESTERDAY,
+      expected: {
+        postedAfter: "2024-09-09", // 假设昨天是 2024-09-09
+        postedBefore: "2024-09-10",
+      },
+    },
+    {
+      timePeriod: TimePeriodEnum.THIS_WEEK,
+      expected: {
+        postedAfter: "2024-09-09", // 假设本周开始于 2024-09-08
+        postedBefore: "2024-09-15", // 假设本周结束于 2024-09-15
+      },
+    },
+    {
+      timePeriod: TimePeriodEnum.THIS_MONTH,
+      expected: {
+        postedAfter: "2024-09-01", // 假设本月开始于 2024-09-01
+        postedBefore: "2024-10-01",
+      },
+    },
+    {
+      timePeriod: TimePeriodEnum.LAST_WEEK,
+      expected: {
+        postedAfter: "2024-09-02", // 假设上周开始于 2024-09-01
+        postedBefore: "2024-09-08", // 假设上周结束于 2024-09-08
+      },
+    },
+    {
+      timePeriod: TimePeriodEnum.LAST_MONTH,
+      expected: {
+        postedAfter: "2024-08-01", // 假设上个月开始于 2024-08-01
+        postedBefore: "2024-09-01",
+      },
+    },
+  ];
 
-  console.log("Testing Time Period: TODAY");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.TODAY));
-
-  console.log("\nTesting Time Period: YESTERDAY");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.YESTERDAY));
-
-  console.log("\nTesting Time Period: THIS_WEEK");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.THIS_WEEK));
-
-  console.log("\nTesting Time Period: THIS_MONTH");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.THIS_MONTH));
-
-  console.log("\nTesting Time Period: LAST_WEEK");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.LAST_WEEK));
-
-  console.log("\nTesting Time Period: LAST_MONTH");
-  console.log(generateQueryForTimePeriod(TimePeriodEnum.LAST_MONTH));
+  testCases.forEach((testCase) => {
+    const result = generateQueryForTimePeriod(testCase.timePeriod);
+    const passed = JSON.stringify(result) === JSON.stringify(testCase.expected);
+    console.log(
+      `Test for ${testCase.timePeriod}: ${passed ? "PASSED" : "FAILED"}`
+    );
+    if (!passed) {
+      console.log(
+        `Expected: ${JSON.stringify(
+          testCase.expected
+        )}, but got: ${JSON.stringify(result)}`
+      );
+    }
+  });
 }
 
 // 调用测试函数

@@ -132,86 +132,120 @@ const TimePeriodEnum = {
 function generateQueryForTimePeriod(timePeriod) {
   let today = new Date();
   let postedAfter, postedBefore;
-  const dayOfWeek = today.getDay();
+  const dayOfWeek = today.getUTCDay();
 
   switch (timePeriod) {
     case TimePeriodEnum.TODAY:
       postedAfter = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate()
+        )
       );
-
+      postedBefore = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() + 1
+        )
+      );
       break;
     case TimePeriodEnum.YESTERDAY:
       postedAfter = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - 1
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - 1
+        )
       );
-      postedBefore = postedAfter;
+      postedBefore = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate()
+        )
+      );
       break;
     case TimePeriodEnum.THIS_WEEK:
       const startOfWeek = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek + 1
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - (dayOfWeek - (dayOfWeek === 0 ? 6 : 0))
+        )
       );
       postedAfter = new Date(
-        startOfWeek.getFullYear(),
-        startOfWeek.getMonth(),
-        startOfWeek.getDate()
+        Date.UTC(
+          startOfWeek.getUTCFullYear(),
+          startOfWeek.getUTCMonth(),
+          startOfWeek.getUTCDate()
+        )
       );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() + (7 - dayOfWeek)
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() + (7 - dayOfWeek - (dayOfWeek === 0 ? 1 : 0))
+        )
       );
       break;
     case TimePeriodEnum.THIS_MONTH:
-      postedAfter = new Date(today.getFullYear(), today.getMonth(), 1);
+      postedAfter = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)
+      );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0 // last day of the current month
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)
       );
       break;
     case TimePeriodEnum.LAST_WEEK:
       const startOfLastWeek = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek - 6
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - (today.getUTCDay() - 1 + 7)
+        )
       );
       postedAfter = new Date(
-        startOfLastWeek.getFullYear(),
-        startOfLastWeek.getMonth(),
-        startOfLastWeek.getDate()
+        Date.UTC(
+          startOfLastWeek.getUTCFullYear(),
+          startOfLastWeek.getUTCMonth(),
+          startOfLastWeek.getUTCDate()
+        )
       );
       postedBefore = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - dayOfWeek
+        Date.UTC(
+          startOfLastWeek.getUTCFullYear(),
+          startOfLastWeek.getUTCMonth(),
+          startOfLastWeek.getUTCDate() + 7
+        )
       );
       break;
     case TimePeriodEnum.LAST_MONTH:
-      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-      postedAfter = lastMonth;
-      postedBefore = lastMonthEnd;
+      const lastMonth =
+        today.getUTCMonth() === 0 ? 11 : today.getUTCMonth() - 1;
+      const lastMonthYear =
+        today.getUTCMonth() === 0
+          ? today.getUTCFullYear() - 1
+          : today.getUTCFullYear();
+      postedAfter = new Date(Date.UTC(lastMonthYear, lastMonth, 1));
+      postedBefore = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)
+      );
       break;
     default:
       throw new Error("Invalid time period");
   }
 
   // Format the date to YYYY-MM-DD
-  postedAfter = postedAfter.toLocaleDateString("en-US");
-  if (postedBefore) {
-    postedBefore = postedBefore.toLocaleDateString("en-US");
-  }
+  postedAfter = postedAfter.toISOString().split("T")[0];
+  postedBefore = postedBefore
+    ? postedBefore.toISOString().split("T")[0]
+    : undefined;
 
   return {
     postedAfter,
-    postedBefore: postedBefore ? postedBefore : undefined,
+    postedBefore,
   };
 }
 async function fetchProductHuntData(chatId, timePeriod) {
@@ -290,7 +324,9 @@ function generateProductHTML(product, index) {
 
 <b>Product description: </b> ${product.description}
 
-<b>Votes:</b> ${product.votesCount} & <b>Publish date:</b> ${product.createdAt}
+<b>Votes:</b> ${product.votesCount} 
+
+<b>Publish date:</b> ${product.createdAt}
 
 <b>🏷 ${product.topics}</b>
 `;
@@ -364,7 +400,7 @@ async function sendTelegramMediaResponse(chatId, product, index) {
 }
 
 async function sendToUser(chatId, timePeriod) {
-  const products = await fetchProductHuntData(timePeriod, chatId);
+  const products = await fetchProductHuntData(chatId, timePeriod);
   let index = 0;
 
   console.log("length of products: ", products.length);
@@ -401,13 +437,36 @@ async function handleRequest(request) {
         "/lastweek",
         "/lastmonth",
       ];
+      if (command === "/start") {
+        await sendTelegramResponse(
+          chatId,
+          "Welcome to Product Hunt Bot! Use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth to get the latest products on Product Hunt."
+        );
+        return new Response("OK", { status: 200 });
+      }
+      // help
+      if (command === "/help") {
+        await sendTelegramResponse(
+          chatId,
+          "Use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth to get the latest products on Product Hunt."
+        );
+        return new Response("OK", { status: 200 });
+      }
+      // contact
+      if (command === "/contact") {
+        await sendTelegramResponse(
+          chatId,
+          "You can contact me in telegram @noncain"
+        );
+        return new Response("OK", { status: 200 });
+      }
       if (commands.includes(command)) {
         await sendToUser(chatId, command.split("/").pop());
         return new Response("OK", { status: 200 });
       } else {
         await sendTelegramResponse(
           chatId,
-          "Invalid command. Please use /today, /yesterday, /thisWeek, /thisMonth, /lastWeek, /lastMonth"
+          "Invalid command. Please use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth"
         );
         return new Response("OK", { status: 200 });
       }

@@ -5,9 +5,6 @@ import { log } from "console";
 
 config();
 
-const productHuntClientId = process.env.PRODUCT_HUNT_CLIENT_ID!;
-const productHuntClientSecret = process.env.PRODUCT_HUNT_CLIENT_SECRET!;
-
 class Product {
   id: string;
   name: string;
@@ -63,45 +60,16 @@ class Product {
   }
 }
 
-async function getProductHuntToken(): Promise<string> {
-  const url = "https://api.producthunt.com/v2/oauth/token";
-  const payload = {
-    client_id: productHuntClientId,
-    client_secret: productHuntClientSecret,
-    grant_type: "client_credentials",
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to obtain access token: ${
-        response.status
-      } ${await response.text()}`
-    );
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
 async function fetchProductHuntData(): Promise<Product[]> {
-  const token =  '76mPN-WTUPaXFRUK_X7Gq7ga1cqMQzJwe1xyPbn7FGI'
-  console.log(token, "token");
-  
-  const yesterday = new Date(Date.now());
-  const dateStr = yesterday.toISOString().split("T")[0];
+  const token = "76mPN-WTUPaXFRUK_X7Gq7ga1cqMQzJwe1xyPbn7FGI";
+
   const url = "https://api.producthunt.com/v2/api/graphql";
-   
+
   const variables = {
     // postedAfter: "2024-07-01T00:00:00Z",
     // postedBefore: "2024-07-31T23:59:59Z",
-    postedAfter: "2024/09/02",
-    postedBefore: "",
+    postedAfter: "2024/9/1T00:00:00Z",
+    postedBefore: "2024/9/1T23:59:59Z",
     featured: true,
     first: 20,
   };
@@ -158,7 +126,7 @@ async function fetchProductHuntData(): Promise<Product[]> {
     );
   }
 
-  const data = await response.json(); 
+  const data = await response.json();
 
   const posts = data.data.posts.nodes;
 
