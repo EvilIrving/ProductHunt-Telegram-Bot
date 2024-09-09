@@ -53,14 +53,14 @@ addEventListener("scheduled", async (event) => {
       break;
     case "0 0 * * mon":
       // Every Monday
-      await sendToUser(CHANNEL_ID, "weekly");
+      await sendToUser(CHANNEL_ID, "lastweek");
       break;
     case "0 0 1 * *":
       // Every first day of the month
-      await sendToUser(CHANNEL_ID, "monthly");
+      await sendToUser(CHANNEL_ID, "lastmonth");
       break;
     default:
-      await sendToUser(CHANNEL_ID, "monthly");
+      await sendToUser(CHANNEL_ID, "yesterday");
       break;
   }
 
