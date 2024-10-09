@@ -21,7 +21,7 @@ export async function translateProduct(product) {
 
   return {
     ...product,
-    name: translatedName,
+    // name: translatedName,
     tagline: translatedTagline,
     description: translatedDescription,
     topics: translatedTopics,
