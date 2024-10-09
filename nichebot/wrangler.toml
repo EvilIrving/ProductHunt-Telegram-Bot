@@ -37,3 +37,10 @@ binding = "AI"
 # [[r2_buckets]]
 # binding = "MY_BUCKET"
 # bucket_name = "my-bucket"
+
+[triggers]
+# Schedule cron triggers:
+# - At every 12am every day
+# - At 3am on first day of the month
+# - At 3am every monday
+crons = [ "0 12 * * *", "0 3 1 * *", "0 12 * * MON" ]

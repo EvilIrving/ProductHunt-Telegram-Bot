@@ -71,7 +71,7 @@ async function handleRequest(request) {
 }
 
 // 更新主要的发送逻辑，支持多频道发送
-async function scheduled(event, env, ctx) {
+async function scheduledRequest(event, env, ctx) {
   setEnv(env);
   const cronJobs = {
     "0 1 * * *": () => sendToUser([env.CHANNEL_ID, env.CHANNEL_ID_ZH], TimePeriodEnum.YESTERDAY),
@@ -94,6 +94,6 @@ export default {
 
   async scheduled(event, env, ctx) {
 	setEnv(env);
-    return scheduled(event, env, ctx);
+    return scheduledRequest(event, env, ctx);
   },
 };
