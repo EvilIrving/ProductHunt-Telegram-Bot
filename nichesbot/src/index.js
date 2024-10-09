@@ -11,7 +11,7 @@ bot.api.config.use(autoRetry());
 
 export default {
 	async fetch(request, env, ctx) {
-		console.log('fetch');
+
 
 		try {
 			bot.command('start', async (ctx) => {
