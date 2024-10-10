@@ -1,5 +1,5 @@
 import { getEnv } from './env.js';
-
+// https://deepl-pro.com/#/translate
 export async function translateText(text, sourceLang, targetLang) {
 	const env = getEnv();
 	const apiUrl = env.THIRD_API_URL;

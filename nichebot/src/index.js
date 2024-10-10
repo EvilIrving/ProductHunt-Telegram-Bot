@@ -6,7 +6,6 @@ import { getIntroMessage, generateProductHTML, generateProductHTMLZh } from './u
 import { setEnv } from './env.js';
 
 async function sendToUser(chatIds, timePeriod) {
-	console.log(`step in sendToUser`);
 	const introMessage = getIntroMessage(timePeriod);
 	let products = await fetchProductHuntData(timePeriod);
 
@@ -72,6 +71,11 @@ async function handleCommand(chatId, command) {
 		} else {
 			await sendTelegramResponse(chatId, response);
 		}
+	} else if (/^\d{4}-\d{2}-\d{2}$/.test(command)) {
+		// 处理日期格式的输入
+		const messageId = await sendTelegramResponse(chatId, `正在获取 ${command} 的产品数据,请稍候...`);
+		await sendToUser([chatId], command);
+		await deleteTelegramMessage(chatId, messageId);
 	} else {
 		await sendTelegramResponse(chatId, '无效的命令。请使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth');
 	}
