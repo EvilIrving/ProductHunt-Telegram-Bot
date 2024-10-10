@@ -129,7 +129,12 @@ export default {
 	},
 
 	async scheduled(event, env, ctx) {
-		setEnv(env);
-		return scheduledRequest(event, env);
+		try {
+			setEnv(env);
+			return await scheduledRequest(event, env);
+		} catch (error) {
+			console.error('Error in scheduled:', error);
+			return new Response('Internal Server Error', { status: 500 });
+		}
 	},
 };
