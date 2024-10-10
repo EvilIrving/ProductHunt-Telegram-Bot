@@ -19,6 +19,8 @@ CHANNEL_ID_ZH = "-1002152374596"
 TELEGRAM_BOT_TOKEN = "7329448395:AAGV_Mf_03RpSXhKqpFyRrPgMkhVWPYpvaI"
 PRODUCT_HUNT_ACCESS_TOKEN = "76mPN-WTUPaXFRUK_X7Gq7ga1cqMQzJwe1xyPbn7FGI"
 API_URL = "https://api.producthunt.com/v2/api/graphql"
+THIRD_API_URL = "https://api.deepl-pro.com/v2/translate"
+THIRD_API_KEY = "25e193b9-704f-43a7-945a-6e22fa05f64e:dp"
 
 # Bind the Workers AI model catalog. Run machine learning models, powered by serverless GPUs, on Cloudflare’s global network
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#workers-ai

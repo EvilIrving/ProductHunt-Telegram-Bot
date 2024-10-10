@@ -1,10 +1,11 @@
 import { getEnv } from './env.js';
 
 export async function translateText(text, sourceLang, targetLang) {
-	try {
-		const apiUrl = 'https://api.deepl-pro.com/v2/translate';
-		const authKey = '25e193b9-704f-43a7-945a-6e22fa05f64e:dp';
+	const env = getEnv();
+	const apiUrl = env.THIRD_API_URL;
+	const authKey = env.THIRD_API_KEY;
 
+	try {
 		const formData = new URLSearchParams();
 		if (Array.isArray(text)) {
 			text.forEach((t) => formData.append('text', t));
