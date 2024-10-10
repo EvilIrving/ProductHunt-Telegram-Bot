@@ -35,5 +35,6 @@ export async function fetchProductHuntData(timePeriod) {
   }
 
   const data = await response.json();
+	console.log(`data: ${data.data.posts.nodes.length}`);
   return data.data.posts.nodes.map((post) => new Product(post));
 }

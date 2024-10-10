@@ -86,9 +86,9 @@ export function generateProductHTMLZh(product, index) {
 	return `
 <b>🏅 排名: ${index + 1}   </b>
 
-<b>${product.name}</b> --- <i>${product.tagline}</i>  <a href="${product.url}">链接</a>
+<b>${product.name}</b> --- <i>${product.tagline_zh}</i>  <a href="${product.url}">链接</a>
 
-<b>📝 产品描述: </b> ${product.description}
+<b>📝 产品描述: </b> ${product.description_zh}
 
 <b>👍 投票数:</b> ${product.votesCount}
 
