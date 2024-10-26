@@ -5,115 +5,133 @@ import { translateProducts, translateRepos } from './translation.js';
 import { getIntroMessage, generateProductHTML, generateProductHTMLZh, generateRepoHTML } from './utils.js';
 import { setEnv, getEnv } from './env.js';
 import { fetchGitHubTrendingData } from './github.js';
+
+// 新增一个统一的消息发送函数
+async function sendMessages(options) {
+	const { botId, chatIdZh, chatIdEn, data, sendFunction, introMessage } = options;
+
+	const promises = [];
+	if (botId) promises.push(sendFunction(botId, data, true));
+	if (chatIdZh) promises.push(sendFunction(chatIdZh, data, true));
+	if (chatIdEn) promises.push(sendFunction(chatIdEn, data, false, introMessage));
+
+	await Promise.all(promises);
+	return { status: '消息已加入发送队列' };
+}
+
+// 重构 sendToUser 函数
 async function sendToUser({ botId, chatIdZh, chatIdEn, timePeriod }) {
 	const introMessage = getIntroMessage(timePeriod);
 	let products = await fetchProductHuntData(timePeriod);
-
 	products = await translateProducts(products);
 
-	if (botId) {
-		await sendZhMessages(botId, products);
-	}
-	if (chatIdZh) {
-		await sendZhMessages(chatIdZh, products);
-	}
-
-	if (chatIdEn) {
-		await sendEnMessages(chatIdEn, introMessage, products);
-	}
-
-	return { status: 'Messages queued for sending' };
+	return sendMessages({
+		botId,
+		chatIdZh,
+		chatIdEn,
+		data: products,
+		sendFunction: sendProductMessages,
+		introMessage,
+	});
 }
-async function sendGitHubMessages({ botId, chatIdEn, chatIdZh }) {
-	let trendingRepos = await fetchGitHubTrendingData();
-	// 翻译 描述信息
+
+// 重构 sendGitHubMessages 函数
+async function sendGitHubMessages({ botId, chatIdEn, chatIdZh, time = '', codeLang = '' }) {
+	let trendingRepos = await fetchGitHubTrendingData(time, codeLang);
 	trendingRepos = await translateRepos(trendingRepos);
 
-	const promises = [];
-	if (botId) {
-		promises.push(sendRepoMessages(botId, trendingRepos, true));
-	}
-
-	if (chatIdEn) {
-		promises.push(sendRepoMessages(chatIdEn, trendingRepos));
-	}
-	if (chatIdZh) {
-		promises.push(sendRepoMessages(chatIdZh, trendingRepos, true));
-	}
-
-	await Promise.all(promises);
-
-	return { status: 'Messages queued for sending' };
+	return sendMessages({
+		botId,
+		chatIdZh,
+		chatIdEn,
+		data: trendingRepos,
+		sendFunction: sendRepoMessages,
+	});
 }
-// 发送GitHub热榜数据
+
+// 重命名并简化 sendRepoMessages 函数
 async function sendRepoMessages(chatId, repos, isZh = false) {
-	let index = 0;
 	for (let repo of repos) {
 		await sendTelegramTextResponse(chatId, repo, isZh, generateRepoHTML);
-		index++;
 	}
 }
-// 发送PH 中文 数据
-async function sendZhMessages(chatId, products) {
-	let index = 0;
-	for (let product of products) {
-		await sendTelegramMediaResponse(chatId, product, index, generateProductHTMLZh);
-		index++;
-	}
-}
-// 发送PH 英文 数据
-async function sendEnMessages(chatId, introMessage, products) {
-	await sendTelegramResponse(chatId, introMessage);
-	let index = 0;
-	for (let product of products) {
-		await sendTelegramMediaResponse(chatId, product, index, generateProductHTML);
-		index++;
+
+// 合并 sendZhMessages 和 sendEnMessages 为一个函数
+async function sendProductMessages(chatId, products, isZh = false, introMessage = null) {
+	if (introMessage) await sendTelegramResponse(chatId, introMessage);
+
+	for (let [index, product] of products.entries()) {
+		await sendTelegramMediaResponse(chatId, product, index, isZh ? generateProductHTMLZh : generateProductHTML);
 	}
 }
 
 async function handleCommand(chatId, command) {
 	const env = getEnv();
-	const commands = {
+
+	const commandHandlers = {
 		'/start': () =>
-			'Welcome to Product Hunt Bot! Use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth to get the latest products on Product Hunt.',
-		'/help': () => 'Use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth to get the latest products on Product Hunt.',
-		'/contact': () => 'You can contact me in telegram @noncain',
-		'/today': () => "Fetching today's products. Please wait...",
-		'/yesterday': () => "Fetching yesterday's products. Please wait...",
-		'/thisweek': () => "Fetching this week's products. Please wait...",
-		'/thismonth': () => "Fetching this month's products. Please wait...",
-		'/lastweek': () => "Fetching last week's products. Please wait...",
-		'/lastmonth': () => "Fetching last month's products. Please wait...",
-		'/github': () => 'Fetching GitHub trending repos. Please wait...',
+			sendSimpleResponse(
+				'欢迎使用 Product Hunt Bot! 使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth 获取 Product Hunt 上的最新产品。'
+			),
+		'/help': () =>
+			sendSimpleResponse('使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth 获取 Product Hunt 上的最新产品。'),
+		'/contact': () => sendSimpleResponse('您可以通过 Telegram @noncain 联系我'),
+		'/github': () => handleGitHubCommand(),
+		'/today': () => handleProductHuntCommand('today'),
+		'/yesterday': () => handleProductHuntCommand('yesterday'),
+		'/thisweek': () => handleProductHuntCommand('thisweek'),
+		'/thismonth': () => handleProductHuntCommand('thismonth'),
+		'/lastweek': () => handleProductHuntCommand('lastweek'),
+		'/lastmonth': () => handleProductHuntCommand('lastmonth'),
 	};
 
-	const handler = commands[command];
-	if (handler) {
-		const response = handler();
-		let messageId;
-		if (command === '/github') {
-			// 获取今日的GitHub热榜，发送日期
-			await sendTelegramResponse(chatId, `${new Date().toLocaleDateString()} 的 GitHub 热榜`);
-			await sendGitHubMessages({ botId: chatId });
-		} else if (command !== '/start' && command !== '/help' && command !== '/contact') {
-			messageId = await sendTelegramResponse(chatId, response);
+	const commandPatterns = [
+		{ regex: /^code\s+/, handler: handleCodeLanguageCommand },
+		{ regex: /^(daily|weekly|monthly)$/, handler: handleGitHubTimeCommand },
+		{ regex: /^\d{4}-\d{2}-\d{2}$/, handler: handleDateCommand },
+	];
 
-			// 触发实际的数据获取
-			const timePeriod = command.split('/')[1];
-			await sendToUser({ chatIdZh: chatId, timePeriod: timePeriod });
-
-			// 删除等待消息
-			await deleteTelegramMessage(chatId, messageId);
-		} else {
-			await sendTelegramResponse(chatId, response);
-		}
-	} else if (/^\d{4}-\d{2}-\d{2}$/.test(command)) {
-		// 处理日期格式的输入
-		const messageId = await sendTelegramResponse(chatId, `正在获取 ${command} 的产品数据,请稍候...`);
-		await sendToUser({ botId: chatId, chatIdZh: env.CHANNEL_ID_ZH, timePeriod: command });
-		await deleteTelegramMessage(chatId, messageId);
+	if (command in commandHandlers) {
+		await commandHandlers[command]();
 	} else {
-		await sendTelegramResponse(chatId, '无效的命令。请使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth');
+		const matchedPattern = commandPatterns.find((pattern) => pattern.regex.test(command));
+		if (matchedPattern) {
+			await matchedPattern.handler(command);
+		} else {
+			await sendSimpleResponse('无效的命令。请使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth');
+		}
+	}
+
+	async function sendSimpleResponse(message) {
+		await sendTelegramResponse(chatId, message);
+	}
+
+	async function handleGitHubCommand() {
+		await sendTelegramResponse(chatId, `${new Date().toLocaleDateString()} 的 GitHub 热榜`);
+		await sendGitHubMessages({ botId: chatId });
+	}
+
+	async function handleCodeLanguageCommand(command) {
+		const codeLang = command.split(' ')[1];
+		await sendTelegramResponse(chatId, `${codeLang} 语言的 GitHub 热榜`);
+		await sendGitHubMessages({ botId: chatId, codeLang: codeLang });
+	}
+
+	async function handleGitHubTimeCommand(time) {
+		await sendTelegramResponse(chatId, `${time} 的 GitHub 热榜`);
+		await sendGitHubMessages({ botId: chatId, time: time });
+	}
+
+	async function handleProductHuntCommand(timePeriod) {
+		const messageId = await sendTelegramResponse(chatId, `正在获取${timePeriod}的产品数据,请稍候...`);
+		await sendToUser({ chatIdZh: chatId, timePeriod: timePeriod });
+		await deleteTelegramMessage(chatId, messageId);
+	}
+
+	async function handleDateCommand(date) {
+		const messageId = await sendTelegramResponse(chatId, `正在获取 ${date} 的产品数据,请稍候...`);
+		await sendToUser({ botId: chatId, chatIdZh: env.CHANNEL_ID_ZH, timePeriod: date });
+		await deleteTelegramMessage(chatId, messageId);
 	}
 }
 
@@ -128,7 +146,6 @@ async function handleRequest(request) {
 				const command = message.text.trim();
 				const chatId = message.chat.id;
 				await handleCommand(chatId, command);
-				// console.log(`Command ${command} processed for chat ID ${chatId}`);
 			}
 		} catch (error) {
 			console.error('Error processing Telegram webhook:', error);

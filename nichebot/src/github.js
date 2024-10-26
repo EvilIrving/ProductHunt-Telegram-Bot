@@ -1,8 +1,9 @@
 import * as cheerio from 'cheerio';
 import { $fetch } from 'ofetch';
-export async function fetchGitHubTrendingData() {
+export async function fetchGitHubTrendingData(time = 'daily', codeLang = '', lang = '') {
 	const baseURL = 'https://github.com';
-	const html = await $fetch(`${baseURL}/trending?since=daily`);
+
+	const html = await $fetch(`${baseURL}/trending?${codeLang}?since=${time}&spoken_language_code=${lang}`);
 
 	const $ = cheerio.load(html);
 	const $main = $('main .Box div[data-hpc] > article');
@@ -14,6 +15,7 @@ export async function fetchGitHubTrendingData() {
 		const url = a.attr('href');
 		const star = $(el).find('[href$=stargazers]').text().replace(/\s+/g, '').trim();
 		const desc = $(el).find('>p').text().replace(/\n+/g, '').trim();
+		const language = $(el).find('span[itemprop="programmingLanguage"]').text().trim();
 
 		if (url && title) {
 			trendingRepos.push({
@@ -22,6 +24,7 @@ export async function fetchGitHubTrendingData() {
 				id: url,
 				stars: star,
 				description: desc,
+				language,
 			});
 		}
 	});

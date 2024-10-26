@@ -113,6 +113,8 @@ export function generateRepoHTML(repo, isZh = false) {
 
 <b>📘 ${repo.title}</b>
 
-<b>📝 描述: </b> ${isZh ? repo.description_zh : repo.description}
+<b>📝 Desc: </b> ${isZh ? repo.description_zh : repo.description}
+
+<b>💻 Lang: </b> ${repo.language}
   `;
 }

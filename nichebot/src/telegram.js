@@ -1,121 +1,67 @@
 import { getEnv } from './env.js';
 
-export async function sendTelegramResponse(chatId, text) {
-	const env = getEnv();
-	const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			chat_id: chatId,
-			text: text,
-		}),
-	});
+const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
 
-	const data = await response.json();
-	if (data.ok) {
-		return data.result.message_id;
-	} else {
-		console.error('发送Telegram消息失败:', data);
-		throw new Error('发送Telegram消息失败');
+// 通用的Telegram API请求函数
+async function makeApiRequest(method, params) {
+	const env = getEnv();
+	const url = `${TELEGRAM_API_BASE}${env.TELEGRAM_BOT_TOKEN}/${method}`;
+	
+	try {
+		const response = await fetch(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(params),
+		});
+		
+		const data = await response.json();
+		if (!data.ok) {
+			throw new Error(`Telegram API 错误: ${data.description}`);
+		}
+		return data.result;
+	} catch (error) {
+		console.error(`Telegram API 请求失败 (${method}):`, error);
+		throw error;
 	}
 }
 
-// 发送Telegram 文本消息
+// 发送文本消息
+export async function sendTelegramResponse(chatId, text) {
+	const result = await makeApiRequest('sendMessage', { chat_id: chatId, text });
+	return result.message_id;
+}
+
+// 发送带有HTML格式的文本消息
 export async function sendTelegramTextResponse(chatId, repo, isZh, generateHTML) {
-	const env = getEnv();
 	const html = generateHTML(repo, isZh);
-
-	const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-	const params = {
+	await makeApiRequest('sendMessage', {
 		chat_id: chatId,
 		text: html,
-		method: 'post',
+		parse_mode: 'HTML',
 		reply_markup: {
 			inline_keyboard: [[{ text: 'GitHub Link', url: repo.url }]],
 		},
-		parse_mode: 'HTML',
-	};
-
-	try {
-		const response = await fetch(apiUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(params),
-		});
-
-		if (response.ok) {
-			return new Response('Message sent successfully!', { status: 200 });
-		} else {
-			return new Response('Failed to send message.', { status: 500 });
-		}
-	} catch (error) {
-		return new Response('Error occurred while sending the message.', {
-			status: 500,
-		});
-	}
+	});
+	return new Response('消息发送成功!', { status: 200 });
 }
 
-// 发送Telegram 媒体消息
+// 发送媒体消息
 export async function sendTelegramMediaResponse(chatId, product, index, generateHTML) {
-	const env = getEnv();
 	const html = generateHTML(product, index);
 	const photo = product.media.length > 0 ? product.media[0].url : '';
-
-	const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`;
-
-	const params = {
+	await makeApiRequest('sendPhoto', {
 		chat_id: chatId,
-		photo: photo,
+		photo,
 		caption: html,
-		method: 'post',
-		reply_markup: {
-			inline_keyboard: [[{ text: 'Go to website', url: product.website }]],
-		},
 		parse_mode: 'HTML',
-	};
-
-	try {
-		const response = await fetch(apiUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(params),
-		});
-
-		if (response.ok) {
-			return new Response('Message sent successfully!', { status: 200 });
-		} else {
-			return new Response('Failed to send message.', { status: 500 });
-		}
-	} catch (error) {
-		return new Response('Error occurred while sending the message.', {
-			status: 500,
-		});
-	}
+		reply_markup: {
+			inline_keyboard: [[{ text: '访问网站', url: product.website }]],
+		},
+	});
+	return new Response('消息发送成功!', { status: 200 });
 }
 
+// 删除消息
 export async function deleteTelegramMessage(chatId, messageId) {
-	const env = getEnv();
-	const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/deleteMessage`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			chat_id: chatId,
-			message_id: messageId,
-		}),
-	});
-
-	const data = await response.json();
-	if (!data.ok) {
-		console.error('删除Telegram消息失败:', data);
-		throw new Error('删除Telegram消息失败');
-	}
+	await makeApiRequest('deleteMessage', { chat_id: chatId, message_id: messageId });
 }
