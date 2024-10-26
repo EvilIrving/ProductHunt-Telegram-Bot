@@ -105,3 +105,14 @@ export function generateProductHTMLZh(product, index) {
 <b>🏷 ${product.topics}</b>
   `;
 }
+
+
+export function generateRepoHTML(repo, isZh = false) {
+	return `
+<b>⭐️ stars: ${repo.stars}   </b>
+
+<b>📘 ${repo.title}</b>
+
+<b>📝 描述: </b> ${isZh ? repo.description_zh : repo.description}
+  `;
+}

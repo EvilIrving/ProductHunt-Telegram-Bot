@@ -60,6 +60,21 @@ export async function translateProducts(products) {
 	});
 }
 
+export async function translateRepos(repos) {
+	const texts = repos.map((repo) => {
+		return repo.description;
+	});
+
+	const translatedTexts = await translateText(texts, 'EN', 'ZH');
+
+	return repos.map((repo, index) => {
+		return {
+			...repo,
+			description_zh: translatedTexts[index],
+		};
+	});
+}
+
 export async function translateProduct(product) {
 	const [translatedTagline, translatedDescription] = await translateText([product.tagline, product.description], 'EN', 'ZH');
 	return {

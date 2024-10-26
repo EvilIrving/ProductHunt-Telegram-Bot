@@ -45,4 +45,11 @@ THIRD_API_KEY = "25e193b9-704f-43a7-945a-6e22fa05f64e:dp"
 # - At every 12am every day
 # - At 3am on first day of the month
 # - At 3am every monday
-crons = [ "0 12 * * *", "0 3 1 * *", "0 12 * * MON" ]
+# - At 3pm every day
+crons = [
+  "0 12 * * *",    # 每天中午 12 点
+  "0 3 1 * *",    # 每月 1 日凌晨 3 点
+  # "0 3 * * 1",    # 每周一凌晨 3 点
+  "0 15 * * *"    # 每天下午 3 点
+]
+

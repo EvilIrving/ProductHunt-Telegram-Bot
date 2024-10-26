@@ -22,6 +22,45 @@ export async function sendTelegramResponse(chatId, text) {
 	}
 }
 
+// 发送Telegram 文本消息
+export async function sendTelegramTextResponse(chatId, repo, isZh, generateHTML) {
+	const env = getEnv();
+	const html = generateHTML(repo, isZh);
+
+	const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+	const params = {
+		chat_id: chatId,
+		text: html,
+		method: 'post',
+		reply_markup: {
+			inline_keyboard: [[{ text: 'GitHub Link', url: repo.url }]],
+		},
+		parse_mode: 'HTML',
+	};
+
+	try {
+		const response = await fetch(apiUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(params),
+		});
+
+		if (response.ok) {
+			return new Response('Message sent successfully!', { status: 200 });
+		} else {
+			return new Response('Failed to send message.', { status: 500 });
+		}
+	} catch (error) {
+		return new Response('Error occurred while sending the message.', {
+			status: 500,
+		});
+	}
+}
+
+// 发送Telegram 媒体消息
 export async function sendTelegramMediaResponse(chatId, product, index, generateHTML) {
 	const env = getEnv();
 	const html = generateHTML(product, index);
