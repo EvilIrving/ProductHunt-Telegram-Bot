@@ -3,17 +3,19 @@ import { fetchProductHuntData } from './api.js';
 import { sendTelegramResponse, sendTelegramMediaResponse, deleteTelegramMessage } from './telegram.js';
 import { translateProducts } from './translation.js';
 import { getIntroMessage, generateProductHTML, generateProductHTMLZh } from './utils.js';
-import { setEnv } from './env.js';
+import { setEnv, getEnv } from './env.js';
 
-async function sendToUser(chatIds, timePeriod) {
+async function sendToUser({ botId, chatIdZh, chatIdEn, timePeriod }) {
 	const introMessage = getIntroMessage(timePeriod);
 	let products = await fetchProductHuntData(timePeriod);
 
 	products = await translateProducts(products);
-	const [chatId, chatIdEn] = chatIds;
 
-	if (chatId) {
-		await sendZhMessages(chatId, products);
+	if (botId) {
+		await sendZhMessages(botId, products);
+	}
+	if (chatIdZh) {
+		await sendZhMessages(chatIdZh, products);
 	}
 
 	if (chatIdEn) {
@@ -41,6 +43,7 @@ async function sendEnMessages(chatId, introMessage, products) {
 }
 
 async function handleCommand(chatId, command) {
+	const env = getEnv();
 	const commands = {
 		'/start': () =>
 			'Welcome to Product Hunt Bot! Use /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth to get the latest products on Product Hunt.',
@@ -64,7 +67,7 @@ async function handleCommand(chatId, command) {
 
 			// 触发实际的数据获取
 			const timePeriod = command.split('/')[1];
-			await sendToUser([chatId], timePeriod);
+			await sendToUser({ chatIdZh: chatId, timePeriod: timePeriod });
 
 			// 删除等待消息
 			await deleteTelegramMessage(chatId, messageId);
@@ -74,7 +77,7 @@ async function handleCommand(chatId, command) {
 	} else if (/^\d{4}-\d{2}-\d{2}$/.test(command)) {
 		// 处理日期格式的输入
 		const messageId = await sendTelegramResponse(chatId, `正在获取 ${command} 的产品数据,请稍候...`);
-		await sendToUser([chatId], command);
+		await sendToUser({ botId: chatId, chatIdZh: env.CHANNEL_ID_ZH, timePeriod: command });
 		await deleteTelegramMessage(chatId, messageId);
 	} else {
 		await sendTelegramResponse(chatId, '无效的命令。请使用 /today, /yesterday, /thisweek, /thismonth, /lastweek, /lastmonth');
@@ -106,9 +109,9 @@ async function handleRequest(request) {
 // 更新主要的发送逻辑，支持多频道发送
 async function scheduledRequest(event, env) {
 	const cronJobs = {
-		'0 1 * * *': () => sendToUser([env.CHANNEL_ID_ZH, env.CHANNEL_ID], TimePeriodEnum.YESTERDAY),
-		'0 0 * * mon': () => sendToUser([env.CHANNEL_ID_ZH, env.CHANNEL_ID], TimePeriodEnum.LAST_WEEK),
-		'0 0 1 * *': () => sendToUser([env.CHANNEL_ID_ZH, env.CHANNEL_ID], TimePeriodEnum.LAST_MONTH),
+		'0 1 * * *': () => sendToUser({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID, timePeriod: TimePeriodEnum.YESTERDAY }),
+		'0 0 * * mon': () => sendToUser({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID, timePeriod: TimePeriodEnum.LAST_WEEK }),
+		'0 0 1 * *': () => sendToUser({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID, timePeriod: TimePeriodEnum.LAST_MONTH }),
 	};
 
 	const job = cronJobs[event.cron] || cronJobs['0 1 * * *'];
