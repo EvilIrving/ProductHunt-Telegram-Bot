@@ -112,7 +112,7 @@ async function handleCommand(chatId, command) {
 	}
 
 	async function handleCodeLanguageCommand(command) {
-		const codeLang = command.split(' ')[1];
+		const codeLang = command.split(' ')[1].toLowerCase();
 		await sendTelegramResponse(chatId, `${codeLang} 语言的 GitHub 热榜`);
 		await sendGitHubMessages({ botId: chatId, codeLang: codeLang });
 	}
@@ -165,8 +165,8 @@ async function scheduledRequest(event, env) {
 		'0 3 1 * *': () => sendToUser({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID, timePeriod: TimePeriodEnum.LAST_WEEK }),
 		// 每周一凌晨 3 点
 		// '0 3 * * 1': () => sendToUser({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID, timePeriod: TimePeriodEnum.LAST_MONTH }),
-		// 每天下午 3 点
-		'0 15 * * *': () => sendGitHubMessages({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID }),
+		// 每周一凌晨 3 点
+		'0 3 * * 1': () => sendGitHubMessages({ chatIdZh: env.CHANNEL_ID_ZH, chatIdEn: env.CHANNEL_ID }),
 	};
 
 	const job = cronJobs[event.cron] || cronJobs['0 12 * * *'];

@@ -3,7 +3,8 @@ import { $fetch } from 'ofetch';
 export async function fetchGitHubTrendingData(time = 'daily', codeLang = '', lang = '') {
 	const baseURL = 'https://github.com';
 
-	const html = await $fetch(`${baseURL}/trending?${codeLang}?since=${time}&spoken_language_code=${lang}`);
+	console.log(`?${codeLang}?since=${time}&spoken_language_code=${lang}`);
+	const html = await $fetch(`${baseURL}/trending/${codeLang}?since=${time}&spoken_language_code=${lang}`);
 
 	const $ = cheerio.load(html);
 	const $main = $('main .Box div[data-hpc] > article');
