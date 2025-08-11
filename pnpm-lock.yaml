@@ -14,6 +14,9 @@ importers:
       ofetch:
         specifier: ^1.4.1
         version: 1.4.1
+      openai:
+        specifier: ^5.12.2
+        version: 5.12.2(ws@8.18.0)(zod@3.23.8)
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.5.2
@@ -782,6 +785,18 @@ packages:
   onetime@6.0.0:
     resolution: {integrity: sha512-1FlR+gjXK7X+AsAHso35MnyN5KqGwJRi/31ft6x0M194ht7S+rWAvd7PHss9xSKMzE0asv1pyIHaJYq+BbacAQ==}
     engines: {node: '>=12'}
+
+  openai@5.12.2:
+    resolution: {integrity: sha512-xqzHHQch5Tws5PcKR2xsZGX9xtch+JQFz5zb14dGqlshmmDAFBFEWmeIpf7wVqWV+w7Emj7jRgkNJakyKE0tYQ==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.23.8
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   parse5-htmlparser2-tree-adapter@7.1.0:
     resolution: {integrity: sha512-ruw5xyKs6lrpo9x9rCZqZZnIUntICjQAd0Wsmp396Ul9lN/h+ifgVV1x1gZHi8euej6wTfpqX8j+BFQxF0NS/g==}
@@ -1726,6 +1741,11 @@ snapshots:
   onetime@6.0.0:
     dependencies:
       mimic-fn: 4.0.0
+
+  openai@5.12.2(ws@8.18.0)(zod@3.23.8):
+    optionalDependencies:
+      ws: 8.18.0
+      zod: 3.23.8
 
   parse5-htmlparser2-tree-adapter@7.1.0:
     dependencies:

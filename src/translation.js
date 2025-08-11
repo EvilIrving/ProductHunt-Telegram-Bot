@@ -1,42 +1,45 @@
 import { getEnv } from './env.js';
-// https://deepl-pro.com/#/translate
+import OpenAI from 'openai';
+
 export async function translateText(text, sourceLang, targetLang) {
 	const env = getEnv();
-	const apiUrl = env.THIRD_API_URL;
-	const authKey = env.THIRD_API_KEY;
+	
+	// 创建 OpenAI 客户端，使用阿里云的 DashScope API
+	const openai = new OpenAI({
+		apiKey: env.THIRD_API_KEY,
+		baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+	});
 
 	try {
-		const formData = new URLSearchParams();
-		if (Array.isArray(text)) {
-			text.forEach((t) => formData.append('text', t));
-		} else {
-			formData.append('text', text);
-		}
-		formData.append('target_lang', targetLang);
-		if (sourceLang) {
-			formData.append('source_lang', sourceLang);
+		const texts = Array.isArray(text) ? text : [text];
+		const translatedTexts = [];
+
+		// 处理每个文本
+		for (const t of texts) {
+			const completion = await openai.chat.completions.create({
+				model: 'qwen-mt-turbo',
+				messages: [
+					{
+						role: 'system',
+						content: `You are a professional translator. Translate the following text from ${sourceLang || 'English'} to ${targetLang}. Only return the translated text without any explanations or additional formatting.`
+					},
+					{
+						role: 'user',
+						content: t
+					}
+				],
+				temperature: 0.3,
+				max_tokens: 2000
+			});
+
+			if (completion.choices && completion.choices[0] && completion.choices[0].message) {
+				translatedTexts.push(completion.choices[0].message.content.trim());
+			} else {
+				throw new Error('翻译结果无效');
+			}
 		}
 
-		const response = await fetch(apiUrl, {
-			method: 'POST',
-			headers: {
-				Authorization: `DeepL-Auth-Key ${authKey}`,
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
-			body: formData,
-		});
-
-		if (response.status !== 200) {
-			throw new Error(`接口错误: ${response.status} ${response.statusText}`);
-		}
-
-		const result = await response.json();
-		if (!result.translations || result.translations.length === 0) {
-			throw new Error('翻译结果无效');
-		}
-
-		// 返回翻译文本
-		return result.translations.map((translation) => translation.text);
+		return Array.isArray(text) ? translatedTexts : translatedTexts[0];
 	} catch (error) {
 		console.error(`翻译失败: ${error.message}`);
 		return text; // 返回原文作为备选方案
