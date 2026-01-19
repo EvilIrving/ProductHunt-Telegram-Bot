@@ -1,14 +1,7 @@
 import { getEnv } from './env.js';
-import OpenAI from 'openai';
 
 export async function translateText(text, sourceLang, targetLang) {
 	const env = getEnv();
-	
-	// 创建 OpenAI 客户端，使用阿里云的 DashScope API
-	const openai = new OpenAI({
-		apiKey: env.THIRD_API_KEY,
-		baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-	});
 
 	try {
 		const texts = Array.isArray(text) ? text : [text];
@@ -16,24 +9,34 @@ export async function translateText(text, sourceLang, targetLang) {
 
 		// 处理每个文本
 		for (const t of texts) {
-			const completion = await openai.chat.completions.create({
-				model: 'qwen-mt-turbo',
-				messages: [
-					{
-						role: 'system',
-						content: `You are a professional translator. Translate the following text from ${sourceLang || 'English'} to ${targetLang}. Only return the translated text without any explanations or additional formatting.`
-					},
-					{
-						role: 'user',
-						content: t
-					}
-				],
-				temperature: 0.3,
-				max_tokens: 2000
+			const response = await fetch('https://api.longcat.chat/anthropic/v1/messages', {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${env.THIRD_API_KEY}`,
+					'Content-Type': 'application/json',
+					'anthropic-version': '2023-06-01'
+				},
+				body: JSON.stringify({
+					model: 'LongCat-Flash-Chat',
+					max_tokens: 1000,
+					messages: [
+						{
+							role: 'user',
+							content: `Translate the following text from ${sourceLang || 'English'} to ${targetLang}. Only return the translated text without any explanations or additional formatting.\n\n${t}`
+						}
+					]
+				})
 			});
 
-			if (completion.choices && completion.choices[0] && completion.choices[0].message) {
-				translatedTexts.push(completion.choices[0].message.content.trim());
+			if (!response.ok) {
+				throw new Error(`API request failed: ${response.status}`);
+			}
+
+			const result = await response.json();
+			const translated = result.content?.[0]?.text?.trim();
+
+			if (translated) {
+				translatedTexts.push(translated);
 			} else {
 				throw new Error('翻译结果无效');
 			}
