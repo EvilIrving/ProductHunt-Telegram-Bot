@@ -9,7 +9,7 @@ export async function translateText(text, sourceLang, targetLang) {
 
 		// 处理每个文本
 		for (const t of texts) {
-			const response = await fetch('https://api.longcat.chat/anthropic/v1/messages', {
+			const response = await fetch(env.THIRD_API_URL, {
 				method: 'POST',
 				headers: {
 					'Authorization': `Bearer ${env.THIRD_API_KEY}`,
